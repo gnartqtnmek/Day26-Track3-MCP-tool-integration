@@ -1,7 +1,10 @@
 # implementation/mcp_server.py
 import json
 import argparse
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
 
 from fastmcp import FastMCP
 from db import SQLiteAdapter, ValidationError
