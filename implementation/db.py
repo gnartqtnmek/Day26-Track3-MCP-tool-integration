@@ -154,4 +154,25 @@ class SQLiteAdapter:
         finally:
             conn.close()
 
-    # insert(), aggregate() will be added in later tasks
+    def insert(self, table: str, values: dict) -> dict:
+        self._validate_table(table)
+        if not values:
+            raise ValidationError("Insert values cannot be empty")
+        self._validate_columns(table, list(values.keys()))
+
+        cols         = list(values.keys())
+        col_clause   = ", ".join(f'"{c}"' for c in cols)
+        placeholders = ", ".join("?" * len(cols))
+        params       = [values[c] for c in cols]
+
+        sql = f'INSERT INTO "{table}" ({col_clause}) VALUES ({placeholders})'
+
+        conn = self.connect()
+        try:
+            cur = conn.execute(sql, params)
+            conn.commit()
+            return {"inserted": values, "id": cur.lastrowid}
+        finally:
+            conn.close()
+
+    # aggregate() will be added in a later task

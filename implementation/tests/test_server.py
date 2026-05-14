@@ -123,3 +123,38 @@ class TestSearch:
                 "students",
                 filters=[{"column": "cohort", "op": "INJECT", "value": "x"}],
             )
+
+
+# ── insert tests ──────────────────────────────────────────────────────────────
+
+class TestInsert:
+    def test_insert_valid(self, adapter):
+        result = adapter.insert("students", {
+            "name": "Dave", "email": "dave@test.com",
+            "cohort": "B1", "score": 75.0,
+        })
+        assert result["id"] is not None
+        assert result["inserted"]["name"] == "Dave"
+
+    def test_insert_persists(self, adapter):
+        adapter.insert("students", {
+            "name": "Eve", "email": "eve@test.com",
+            "cohort": "B1", "score": 68.0,
+        })
+        found = adapter.search(
+            "students",
+            filters=[{"column": "email", "op": "=", "value": "eve@test.com"}],
+        )
+        assert found["total"] == 1
+
+    def test_insert_empty_values(self, adapter):
+        with pytest.raises(ValidationError, match="cannot be empty"):
+            adapter.insert("students", {})
+
+    def test_insert_unknown_table(self, adapter):
+        with pytest.raises(ValidationError, match="Unknown table"):
+            adapter.insert("ghosts", {"name": "Ghost"})
+
+    def test_insert_unknown_column(self, adapter):
+        with pytest.raises(ValidationError, match="Unknown column"):
+            adapter.insert("students", {"bad_col": "x"})
