@@ -112,4 +112,46 @@ class SQLiteAdapter:
         return "WHERE " + " AND ".join(clauses), params
 
     # ── public query methods (added in Tasks 5-7) ─────────────────────────────
-    # search(), insert(), aggregate() will be added in later tasks
+
+    def search(
+        self,
+        table: str,
+        columns: list[str] | None = None,
+        filters: list[dict] | None = None,
+        limit: int = 20,
+        offset: int = 0,
+        order_by: str | None = None,
+        descending: bool = False,
+    ) -> dict:
+        self._validate_table(table)
+
+        if columns:
+            self._validate_columns(table, columns)
+            col_clause = ", ".join(f'"{c}"' for c in columns)
+        else:
+            col_clause = "*"
+
+        where_clause, params = self._build_where(table, filters or [])
+
+        order_clause = ""
+        if order_by:
+            self._validate_columns(table, [order_by])
+            direction = "DESC" if descending else "ASC"
+            order_clause = f'ORDER BY "{order_by}" {direction}'
+
+        sql = (
+            f'SELECT {col_clause} FROM "{table}" '
+            f'{where_clause} {order_clause} '
+            f'LIMIT ? OFFSET ?'
+        )
+        params.extend([limit, offset])
+
+        conn = self.connect()
+        try:
+            cur = conn.execute(sql, params)
+            rows = [dict(row) for row in cur.fetchall()]
+            return {"rows": rows, "total": len(rows), "table": table}
+        finally:
+            conn.close()
+
+    # insert(), aggregate() will be added in later tasks
