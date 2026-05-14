@@ -33,7 +33,7 @@ mcp_server.py  →  SQLiteAdapter (db.py)
 
 - `mcp_server.py` imports `SQLiteAdapter` from `db.py` — never writes SQL directly
 - `init_db.py` is standalone, run once to create `lab.db`
-- `verify_server.py` imports tool functions directly from `mcp_server.py` for fast testing without MCP protocol
+- `verify_server.py` imports `SQLiteAdapter` directly from `db.py` and calls adapter methods — bypasses MCP protocol entirely for fast CLI verification
 - `tests/test_server.py` tests `SQLiteAdapter` methods directly against in-memory SQLite
 
 ---
