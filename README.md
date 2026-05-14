@@ -10,6 +10,59 @@ Build a Model Context Protocol (MCP) server using FastMCP that exposes a small d
 
 You must also expose the database schema as an MCP resource, test the server with Inspector or equivalent tooling, and show the server working from at least one MCP client.
 
+## Quick Start
+
+### 1. Install
+
+```bash
+cd implementation
+python -m venv .venv
+.venv\Scripts\activate   # Windows
+# source .venv/bin/activate  # macOS/Linux
+pip install -r requirements.txt
+```
+
+### 2. Initialize the database
+
+```bash
+cd implementation
+python init_db.py
+# → Database created: .../implementation/lab.db
+```
+
+### 3. Verify (no server needed)
+
+```bash
+python verify_server.py   # all [PASS]
+```
+
+### 4. Run automated tests
+
+```bash
+pytest tests/ -v
+# 31 tests pass
+```
+
+### 5. Run MCP Inspector
+
+```bash
+npx -y @modelcontextprotocol/inspector python ABSOLUTE_PATH/implementation/mcp_server.py
+# open http://localhost:5173
+```
+
+### 6. Connect Claude Code
+
+Edit `.mcp.json` at the repo root with the absolute path to `mcp_server.py`, then start Claude Code.
+
+Reference the schema: `@sqlite-lab:schema://database`
+
+### 7. HTTP transport (bonus)
+
+```bash
+python implementation/mcp_server.py --transport streamable-http
+# server on http://0.0.0.0:8000
+```
+
 ## Learning Outcomes
 
 By the end of this lab, students should be able to:
