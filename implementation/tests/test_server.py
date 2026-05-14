@@ -158,3 +158,60 @@ class TestInsert:
     def test_insert_unknown_column(self, adapter):
         with pytest.raises(ValidationError, match="Unknown column"):
             adapter.insert("students", {"bad_col": "x"})
+
+
+# ── aggregate tests ───────────────────────────────────────────────────────────
+
+class TestAggregate:
+    def test_count(self, adapter):
+        result = adapter.aggregate("students", "count")
+        assert result["rows"][0]["value"] == 3
+
+    def test_avg(self, adapter):
+        result = adapter.aggregate("students", "avg", column="score")
+        assert abs(result["rows"][0]["value"] - 80.0) < 0.01
+
+    def test_sum(self, adapter):
+        result = adapter.aggregate("students", "sum", column="score")
+        assert result["rows"][0]["value"] == 240
+
+    def test_min(self, adapter):
+        result = adapter.aggregate("students", "min", column="score")
+        assert result["rows"][0]["value"] == 70
+
+    def test_max(self, adapter):
+        result = adapter.aggregate("students", "max", column="score")
+        assert result["rows"][0]["value"] == 90
+
+    def test_count_group_by(self, adapter):
+        result = adapter.aggregate("students", "count", group_by="cohort")
+        groups = {r["grp"]: r["value"] for r in result["rows"]}
+        assert groups["A1"] == 2
+        assert groups["A2"] == 1
+
+    def test_avg_group_by(self, adapter):
+        result = adapter.aggregate(
+            "students", "avg", column="score", group_by="cohort"
+        )
+        groups = {r["grp"]: r["value"] for r in result["rows"]}
+        assert groups["A1"] == 85.0
+        assert groups["A2"] == 70.0
+
+    def test_count_with_filter(self, adapter):
+        result = adapter.aggregate(
+            "students", "count",
+            filters=[{"column": "cohort", "op": "=", "value": "A1"}],
+        )
+        assert result["rows"][0]["value"] == 2
+
+    def test_bad_metric(self, adapter):
+        with pytest.raises(ValidationError, match="Unsupported metric"):
+            adapter.aggregate("students", "drop_table")
+
+    def test_avg_missing_column(self, adapter):
+        with pytest.raises(ValidationError, match="requires a column"):
+            adapter.aggregate("students", "avg")
+
+    def test_unknown_table(self, adapter):
+        with pytest.raises(ValidationError, match="Unknown table"):
+            adapter.aggregate("unicorns", "count")

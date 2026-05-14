@@ -175,4 +175,50 @@ class SQLiteAdapter:
         finally:
             conn.close()
 
-    # aggregate() will be added in a later task
+    def aggregate(
+        self,
+        table: str,
+        metric: str,
+        column: str | None = None,
+        filters: list[dict] | None = None,
+        group_by: str | None = None,
+    ) -> dict:
+        self._validate_table(table)
+
+        metric_lower = metric.lower()
+        if metric_lower not in ALLOWED_METRICS:
+            raise ValidationError(
+                f"Unsupported metric: '{metric}'. "
+                f"Use: {', '.join(sorted(ALLOWED_METRICS))}"
+            )
+        if metric_lower in {"avg", "sum", "min", "max"} and not column:
+            raise ValidationError(f"Metric '{metric}' requires a column")
+        if column:
+            self._validate_columns(table, [column])
+        if group_by:
+            self._validate_columns(table, [group_by])
+
+        agg_expr = (
+            f'{metric_lower.upper()}("{column}")' if column else "COUNT(*)"
+        )
+        where_clause, params = self._build_where(table, filters or [])
+
+        if group_by:
+            sql = (
+                f'SELECT "{group_by}" AS grp, {agg_expr} AS value '
+                f'FROM "{table}" {where_clause} '
+                f'GROUP BY "{group_by}"'
+            )
+        else:
+            sql = (
+                f'SELECT {agg_expr} AS value '
+                f'FROM "{table}" {where_clause}'
+            )
+
+        conn = self.connect()
+        try:
+            cur = conn.execute(sql, params)
+            rows = [dict(row) for row in cur.fetchall()]
+            return {"rows": rows, "metric": metric_lower, "table": table}
+        finally:
+            conn.close()
