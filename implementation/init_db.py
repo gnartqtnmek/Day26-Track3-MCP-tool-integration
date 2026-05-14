@@ -2,6 +2,8 @@
 import sqlite3
 import os
 
+"""SQLite database initialisation and seed data for the MCP lab."""
+
 DB_PATH = os.path.join(os.path.dirname(__file__), "lab.db")
 
 SCHEMA_SQL = """
@@ -25,7 +27,8 @@ CREATE TABLE IF NOT EXISTS enrollments (
     student_id  INTEGER NOT NULL REFERENCES students(id),
     course_id   INTEGER NOT NULL REFERENCES courses(id),
     grade       TEXT    NOT NULL,
-    enrolled_at TEXT    NOT NULL
+    enrolled_at TEXT    NOT NULL,
+    UNIQUE(student_id, course_id)
 );
 """
 
@@ -80,12 +83,18 @@ INSERT INTO enrollments (student_id, course_id, grade, enrolled_at) VALUES
 
 
 def create_database(db_path: str = DB_PATH) -> str:
+    """Create (or reset) the lab database with schema and seed data.
+
+    WARNING: If db_path already exists, it is deleted and recreated from scratch.
+    This is intentional for lab/demo resets. Do not call during tests — use
+    a tmp_path fixture instead.
+    """
     if os.path.exists(db_path):
         os.remove(db_path)
     conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA_SQL)
     conn.executescript(SEED_SQL)
-    conn.commit()
     conn.close()
     print(f"Database created: {db_path}")
     return db_path
